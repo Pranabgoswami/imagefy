@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image Tools Hub - Compress, Enhance, Convert to PDF</title>
+
+  <style>
+    :root {
+      --primary: #4f8cf7;
+      --secondary: #e0ecff;
+      --bg-light: #ffffff;
+      --bg-dark: #121212;
+      --text-light: #333;
+      --text-dark: #eee;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      transition: all 0.3s;
+    }
+    header {
+      background: var(--primary);
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      color: #fff;
+      box-shadow: var(--shadow);
+    }
+    .ad-slot {
+      margin: 30px auto;
+      max-width: 1000px;
+      padding: 10px;
+      background: var(--secondary);
+      box-shadow: var(--shadow);
+      border-radius: 10px;
+      text-align: center;
+    }
+    .ad-slot p {
+      font-size: 16px;
+      color: var(--text-light);
+    }
+    main {
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    section {
+      margin-bottom: 50px;
+      background: var(--secondary);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      margin-top: 0;
+      color: var(--primary);
+    }
+    input[type="file"], input[type="text"], button {
+      margin: 10px 0;
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+    }
+    input[type="file"], input[type="text"] {
+      background: #f7f7f7;
+    }
+    button {
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #3672db;
+    }
+    .preview {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .preview img {
+      height: 100px;
+      width: auto;
+      border-radius: 8px;
+      cursor: grab;
+    }
+    .progress {
+      width: 100%;
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 20px;
+      margin: 10px 0;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      background: var(--primary);
+      transition: width 0.4s;
+    }
+    .dark-mode {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+    .dark-mode input, .dark-mode section {
+      background: #1e1e1e;
+      color: var(--text-dark);
+    }
+    .mode-switch {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: var(--primary);
+      color: #fff;
+      padding: 10px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    @media (max-width: 600px) {
+      .preview {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>📸 Image Tools Hub</header>
+
+  <div class="mode-switch" onclick="toggleMode()">🌓</div>
+
+  <!-- Top Ad Slot -->
+  <div class="ad-slot">
+    <p>[ Top Banner Ad Space ]</p>
+  </div>
+
+  <main>
+
+    <section id="compress">
+      <h2>Compress Image</h2>
+      <input type="file" id="compress-input" accept="image/*">
+      <button onclick="compressImage()">Compress & Download</button>
+      <div class="progress" id="compress-progress">
+        <div class="progress-bar" id="compress-bar"></div>
+      </div>
+    </section>
+
+    <!-- Middle Ad Slot -->
+    <div class="ad-slot">
+      <p>[ Middle Ad Space ]</p>
+    </div>
+
+    <section id="enhance">
+      <h2>Enhance Image</h2>
+      <input type="file" id="enhance-input" accept="image/*">
+      <button onclick="enhanceImage()">Enhance & Download</button>
+    </section>
+
+    <section id="pdf">
+      <h2>Convert Images to PDF</h2>
+      <input type="file" id="pdf-input" accept="image/jpeg, image/png, image/webp" multiple>
+      <button onclick="addMoreImages()">+ Add More Images</button>
+      <div class="preview" id="preview"></div>
+      <input type="text" id="pdf-name" placeholder="Enter PDF file name">
+      <button onclick="convertToPDF()">Convert to PDF</button>
+      <a id="download-pdf" style="display:none; margin-top:15px;" download>Download PDF</a>
+    </section>
+
+  </main>
+
+  <!-- Bottom Footer Ad -->
+  <div class="ad-slot">
+    <p>[ Footer Ad Space ]</p>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const { jsPDF } = window.jspdf;
+    let selectedImages = [];
+
+    function toggleMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+
+    function compressImage() {
+      const fileInput = document.getElementById('compress-input');
+      const progressBar = document.getElementById('compress-bar');
+      if (fileInput.files.length === 0) return alert('Select an image!');
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const maxWidth = 800;
+          const scaleSize = maxWidth / img.width;
+          canvas.width = maxWidth;
+          canvas.height = img.height * scaleSize;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          progressBar.style.width = '50%';
+          canvas.toBlob(blob => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'compressed.jpg';
+            a.click();
+            progressBar.style.width = '100%';
+            setTimeout(()=>progressBar.style.width='0%', 1000);
+          }, 'image/jpeg', 0.7);
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function enhanceImage() {
+      const fileInput = document.getElementById('enhance-input');
+      if (fileInput.files.length === 0) return alert('Select an image!');
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.filter = 'contrast(120%) brightness(110%) saturate(120%)';
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(blob => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'enhanced.jpg';
+            a.click();
+          }, 'image/jpeg', 0.9);
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function addMoreImages() {
+      document.getElementById('pdf-input').click();
+    }
+
+    document.getElementById('pdf-input').addEventListener('change', (e) => {
+      const files = e.target.files;
+      for (const file of files) {
+        selectedImages.push(file);
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          const img = document.createElement('img');
+          img.src = ev.target.result;
+          img.draggable = true;
+          img.addEventListener('dragstart', (event) => {
+            event.dataTransfer.setData('text/plain', selectedImages.indexOf(file));
+          });
+          document.getElementById('preview').appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('preview').addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    document.getElementById('preview').addEventListener('drop', (e) => {
+      e.preventDefault();
+      const fromIndex = e.dataTransfer.getData('text/plain');
+      const imgs = [...document.getElementById('preview').children];
+      const target = imgs.findIndex(img => img === e.target);
+      if (target !== -1) {
+        const temp = selectedImages[fromIndex];
+        selectedImages[fromIndex] = selectedImages[target];
+        selectedImages[target] = temp;
+        reloadPreviews();
+      }
+    });
+
+    function reloadPreviews() {
+      const preview = document.getElementById('preview');
+      preview.innerHTML = '';
+      selectedImages.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          const img = document.createElement('img');
+          img.src = ev.target.result;
+          img.draggable = true;
+          img.addEventListener('dragstart', (event) => {
+            event.dataTransfer.setData('text/plain', selectedImages.indexOf(file));
+          });
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function convertToPDF() {
+      if (selectedImages.length === 0) return alert('Please select images first!');
+      const pdf = new jsPDF();
+      for (let i = 0; i < selectedImages.length; i++) {
+        const imgData = await toDataURL(selectedImages[i]);
+        const img = new Image();
+        img.src = imgData;
+        await new Promise((resolve) => img.onload = resolve);
+        const width = pdf.internal.pageSize.getWidth();
+        const height = (img.height * width) / img.width;
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
+      }
+      const name = document.getElementById('pdf-name').value || 'images.pdf';
+      const pdfBlob = pdf.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const downloadLink = document.getElementById('download-pdf');
+      downloadLink.href = url;
+      downloadLink.download = name.endsWith('.pdf') ? name : name + '.pdf';
+      downloadLink.style.display = 'block';
+    }
+
+    function toDataURL(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) { resolve(e.target.result); };
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>
